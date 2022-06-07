@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import React, { useContext, useState } from "react";
 
 import Modal from "../UI/Modal";
 import CartItem from "./CartItem";
@@ -8,6 +8,8 @@ import CheckOut from "./CheckOut";
 
 const Cart = (props) => {
   const cartCtx = useContext(CartContext);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [didSubmit, setDidSubmit] = useState(false);
   const [isChekout, setIsChekout] = useState(false);
 
   const totalAmount = `$${cartCtx.totalAmount.toFixed(2)}`;
@@ -24,6 +26,22 @@ const Cart = (props) => {
   function orderHandler() {
     setIsChekout(true);
   }
+
+  const submitOrderHandler = async (userData) => {
+    setIsSubmitting(true);
+    const url =
+      "https://react-http-testing-1d3bc-default-rtdb.firebaseio.com/orders.json";
+    await fetch(url, {
+      method: "POST",
+      body: JSON.stringify({
+        user: userData,
+        orderedItems: cartCtx.items,
+      }),
+    });
+    console.log(userData);
+    setIsSubmitting(false);
+    setDidSubmit(true);
+  };
 
   const cartItems = (
     <ul className={classes["cart-items"]}>
@@ -53,15 +71,30 @@ const Cart = (props) => {
     </div>
   );
 
-  return (
-    <Modal onClose={props.onClose}>
+  const cartModalContent = (
+    <React.Fragment>
+      {" "}
       {cartItems}
       <div className={classes.total}>
         <span>Total Amount</span>
         <span>{totalAmount}</span>
       </div>
-      {isChekout && <CheckOut onCancel={props.onClose} />}
+      {isChekout && (
+        <CheckOut onConfirm={submitOrderHandler} onCancel={props.onClose} />
+      )}
       {!isChekout && modalAction}
+    </React.Fragment>
+  );
+
+  const isSubmittingModalContent = <p>Sending order data...</p>;
+
+  const didSubmitingModalContent = <p>Successfully sent the order!</p>;
+
+  return (
+    <Modal onClose={props.onClose}>
+      {!isSubmitting && !didSubmit && cartModalContent}
+      {isSubmitting && isSubmittingModalContent}
+      {didSubmit && didSubmitingModalContent}
     </Modal>
   );
 };
